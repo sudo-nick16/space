@@ -5,13 +5,12 @@ canvas.height = window.innerHeight;
 canvas.width = window.innerWidth;
 
 const ctx = canvas.getContext("2d")!;
+ctx.shadowBlur = 30;
+ctx.shadowColor = "white";
 
 const getCoord = () => {
 	return [Math.random()*canvas.width, Math.random()*canvas.height];
 }
-
-ctx.shadowBlur = 30;
-ctx.shadowColor = "white";
 
 class Space {
 	width: number;
@@ -28,7 +27,7 @@ class Space {
 		ctx.fillRect(0, 0, this.width, this.height);
 	}
 
-	genCluster(radius: number, count: number = 100, velocity: number[] = [5, 5]) {
+	genCluster(radius: number, count: number = 100, velocity: number[] = [0, 0]) {
 		const stars = []
 		for (let i = 0; i < count; ++i) {
 			stars.push(getCoord());
@@ -50,17 +49,27 @@ class Space {
 	update() {
 		this.clusters.forEach(c => {
 			c.stars.forEach(s => {
-				s[0] = s[0] > 0 ? ((s[0] + c.velocity[0]) % this.width) : this.width;
-				s[1] = s[1] > 0 ? ((s[1] + c.velocity[1]) % this.height) : this.height;
+				s[0] += c.velocity[0] * c.radius * 0.01;
+				s[1] += c.velocity[1] * c.radius * 0.01;
+				if (s[0] < 0) {
+					s[0] = this.width;
+				}
+				if (s[1] < 0) {
+					s[1] = this.height;
+				}
+				if (s[0] > this.width) {
+					s[0] = 0;
+				}
+				if (s[1] > this.height) {
+					s[1] = 0;
+				}
 			})
 		})
 	}
 
-	updateDirection(angle: number) {
-		const dx = Math.abs(angle) >= (Math.PI/2) ? 1 : -1;
-		const dy = angle >= 0 ? -1 : 1;
+	updateVelocity(x: number, y: number) {
 		this.clusters.forEach(c => {
-			c.velocity = [dx * c.velocity[0], dy * c.velocity[1]]; 
+			c.velocity = [x, y]; 
 		})
 	}
 }
@@ -104,9 +113,9 @@ class Ship {
 }
 
 const space = new Space(canvas.width, canvas.height); 
-space.genCluster(4, 50, [4, 4]);
-space.genCluster(3, 50, [3, 3]);
-space.genCluster(1, 50, [2, 2]);
+space.genCluster(4, 25);
+space.genCluster(3, 25);
+space.genCluster(1, 50);
 
 const ship = new Ship(30);
 
@@ -115,9 +124,8 @@ window.addEventListener('mousemove', (e) => {
 	const ry = e.y - ship.center[1];
 	const angle = Math.atan2(ry, rx);
 	ship.setAngle(angle);
-	space.updateDirection(angle);
+	space.updateVelocity(-rx, -ry);
 })
-
 
 const eventLoop = () => {
 	space.clear();
@@ -128,4 +136,3 @@ const eventLoop = () => {
 }
 
 requestAnimationFrame(eventLoop);
-
